@@ -56,10 +56,11 @@ class TestRelevanceScorer:
         score = scorer.score(query, chunks)
 
         assert isinstance(score, float)
-        assert 0.0 <= score <= 1.0
-        # Chunk contains 2 of the 4 query terms (Python, Django) but not
-        # "web" or "framework", so the score is a genuine partial 2/4 = 0.5.
-        assert 0.3 < score < 0.9  # Partial overlap should be in middle range
+        # Chunk contains exactly 2 of the 4 query terms (Python, Django) and omits
+        # "web" and "framework", so the score is a genuine partial 2/4 = 0.5.
+        # Pin the exact value (per PR #223 review) so the fixture cannot drift to
+        # another partial score without the test noticing.
+        assert score == 0.5
 
     def test_empty_chunks_list_returns_zero(self, scorer):
         """Test empty chunks list returns 0.0."""
