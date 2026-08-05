@@ -147,3 +147,89 @@ two of the four terms, so the test now exercises a real partial overlap (score
   pre-existing formatting/type debt from the seeded issues that is out of scope
   for this fix, so I committed with `--no-verify` to keep the diff limited to the
   actual change rather than reformatting ~15 unrelated fixture blocks.
+
+---
+
+## Week 10 — Iteration & reflection
+
+### Reviewer feedback
+
+**Feedback received:** [x] Yes  [ ] No — still awaiting review
+
+**Summary of feedback:**
+A classmate (Divergent-Code) reviewed PR #223 against a local checkout. They
+reproduced both sides — on `main` the file is 1 failed / 18 passed with
+`assert 1.0 < 0.9`, and on my branch it is 19 passed — and confirmed
+`rag/evaluator/relevance_scorer.py` is identical between the two, so the
+"no production code changes" note holds. They called out two things as well done:
+disclosing the `--no-verify` and why, with an offer to split the formatting; and
+diagnosing from the captured log (`avg_score=1.0 query_len=4`) instead of trusting
+the issue title, which is what showed the fix target was the test data, not the
+scorer. Their one suggestion: the new fixture scores exactly 0.5, but the
+assertion was still the original `0.3 < score < 0.9`, which would also pass at
+0.35 or 0.85. The exact value lived only in a comment, and nothing enforced it.
+
+**How you responded:**
+I agreed and made the change. I replaced the loose range assertion with
+`assert score == 0.5`, so the exact partial-overlap value is now enforced by the
+test rather than described in a comment. I confirmed by running the scorer
+directly that the fixture produces exactly 0.5 (`avg_score=0.5`), and the file
+still passes 19/19. I pushed the update to the branch, which refreshed PR #223,
+and replied to the reviewer to thank them and confirm the fix.
+
+---
+
+### Reflection
+
+**What was harder than you expected?**
+The hard part was not writing code — it was telling a real bug from a mislabeled
+test. My issue (#157) looked like a scorer bug, but the scorer was correct. The
+test fixture claimed to check "partial overlap" while feeding a chunk that
+contained every query word, so the code returned 1.0 and the test failed against
+correct behavior. I also did not expect the repository to ship dozens of
+intentionally failing tests — roughly one per open issue. That made "make
+test-unit passes" impossible to read literally, so I had to scope my self-review
+to the file I changed and say so, rather than claim a green suite that no single
+contributor could produce.
+
+**What did you learn about working in a large codebase?**
+Read the real code before you trust the issue text. The description and the code
+disagreed more than once: one issue described a "50/50 weight" that the code
+actually set to 0.7/0.3, and another had a "consolidation" method that only
+de-duplicated by section name — a no-op, because the names are already unique. In
+my own projects I know why each line exists. Here, the issue, the code, and the
+tests can each tell a slightly different story, and only reading all three shows
+the true problem. I also learned to keep each change small, match the surrounding
+style, and leave unrelated pre-existing debt alone instead of reformatting it.
+
+**How did AI tools help — and where did they fall short?**
+I leaned on AI heavily, and it is worth being honest about where. It was strongest
+at orientation and speed: navigating an unfamiliar multi-module codebase, filtering
+60-plus issues down to ones with low contention that I could actually verify, and
+drafting tests and documentation quickly. It fell short at verification and
+judgment. It could not run anything that needed Docker or a live LLM — the vector
+store, the full app at localhost:5173 — so several tier-3 issues stayed out of
+scope because neither of us could prove the code worked. It also took issue
+descriptions at face value until the actual files were read; the mismatches only
+surfaced by opening the code. The judgment calls stayed with me: how far to scope
+a change, whether to tick a self-review box that is not literally true for the
+whole repo, and which issues were even worth attempting.
+
+**What would you do differently if you started over?**
+I would set up the environment in Week 7 instead of finding out in Week 8 that
+Docker was not installed — that single fact shaped which issues I could take. I
+would also claim a less-crowded issue sooner, since the popular "good first issues"
+already had five to nine other students on them before I looked. And I would write
+assertions that pin the exact expected value from the start: my reviewer correctly
+noted that the fixture's exact 0.5 was only enforced by a comment, not by the test.
+Finally, I would write the plan only after reproducing the bug, not before — my
+first idea of the fix was wrong until I ran the failing test and read the scorer.
+
+**What are you most proud of?**
+The honesty of the work, more than any single fix. When the self-review boxes
+could not be true for the whole seeded repo, I scoped them and explained why rather
+than checking them blindly — and my reviewer singled out that same disclosure as
+something that saved them time. In the red-team suite I wrote for the
+prompt-injection defense, I recorded the attacks it still misses as `xfail` tests
+instead of pretending the defense was complete. A documented weakness is more
+useful to the next contributor than a green checkmark that hides it.
